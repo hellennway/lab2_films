@@ -9,6 +9,10 @@ namespace films.Models
 {
     public class Company
     {
+        public Company()
+        {
+            Director = new List<Director>();
+        }
         public int CompanyId { get; set; }
         [Required(ErrorMessage = "Потрібно заповнити поле")]
         [StringLength(50, MinimumLength = 2, ErrorMessage = "Довжина значення від 2 до 50 символів")]
