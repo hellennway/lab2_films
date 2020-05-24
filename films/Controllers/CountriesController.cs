@@ -51,7 +51,8 @@ namespace films.Controllers
             {
                 return BadRequest();
             }
-
+            CountryValid c = new CountryValid(_context, country);
+            if (!c.Valid()) return BadRequest("Країна з такою назвою вже існує");
             _context.Entry(country).State = EntityState.Modified;
 
             try
@@ -79,7 +80,9 @@ namespace films.Controllers
         [HttpPost]
         public async Task<ActionResult<Country>> PostCountry(Country country)
         {
-            _context.Country.Add(country);
+            CountryValid c = new CountryValid(_context, country);
+            if (!c.Valid()) return BadRequest("Країна з такою назвою вже існує");
+             _context.Country.Add(country);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetCountry", new { id = country.CountryId }, country);
@@ -90,6 +93,15 @@ namespace films.Controllers
         public async Task<ActionResult<Country>> DeleteCountry(int id)
         {
             var country = await _context.Country.FindAsync(id);
+            var film = _context.Film.Where(f => f.CountryId == id).Include(f => f.Country).ToList();
+            foreach( var f in film)
+            {
+                var filmGenre = _context.FilmGenre.Where(fg => fg.FilmId == f.FilmId).Include(fg => fg.Genre).ToList();
+                _context.FilmGenre.RemoveRange(filmGenre);
+            }
+            _context.Film.RemoveRange(film);
+
+
             if (country == null)
             {
                 return NotFound();

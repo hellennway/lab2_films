@@ -51,7 +51,8 @@ namespace films.Controllers
             {
                 return BadRequest();
             }
-
+            CompanyValid c = new CompanyValid(_context, company);
+            if (!c.Valid()) return BadRequest("Компанія з такою назвою вже існує");
             _context.Entry(company).State = EntityState.Modified;
 
             try
@@ -79,6 +80,8 @@ namespace films.Controllers
         [HttpPost]
         public async Task<ActionResult<Company>> PostCompany(Company company)
         {
+            CompanyValid c = new CompanyValid(_context, company);
+            if (!c.Valid()) return BadRequest("Компанія з такою назвою вже існує");
             _context.Company.Add(company);
             await _context.SaveChangesAsync();
 
@@ -90,10 +93,23 @@ namespace films.Controllers
         public async Task<ActionResult<Company>> DeleteCompany(int id)
         {
             var company = await _context.Company.FindAsync(id);
+            var director = _context.Director.Where(d => d.CompanyId == id).Include(d => d.Company).ToList();
+            foreach (var d in director)
+            {
+                var film = _context.Film.Where(f => f.DirectorId == d.DirectorId).Include(f => f.Director).ToList();
+                foreach(var f in film)
+                {
+                    var filmGenre = _context.FilmGenre.Where(fg => fg.FilmId == f.FilmId).Include(fg => fg.Genre).ToList();
+                    _context.FilmGenre.RemoveRange(filmGenre);
+                }
+                _context.Film.RemoveRange(film);
+            }
+            _context.Director.RemoveRange(director);
             if (company == null)
             {
                 return NotFound();
             }
+
 
             _context.Company.Remove(company);
             await _context.SaveChangesAsync();

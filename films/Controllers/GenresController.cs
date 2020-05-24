@@ -51,7 +51,8 @@ namespace films.Controllers
             {
                 return BadRequest();
             }
-
+            GenreValid c = new GenreValid(_context, genre);
+            if (!c.Valid()) return BadRequest("Жанр з такою назвою вже існує");
             _context.Entry(genre).State = EntityState.Modified;
 
             try
@@ -80,6 +81,8 @@ namespace films.Controllers
         public async Task<ActionResult<Genre>> PostGenre(Genre genre)
         {
             _context.Genre.Add(genre);
+            GenreValid c = new GenreValid(_context, genre);
+            if (!c.Valid()) return BadRequest("Жанр з такою назвою вже існує");
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetGenre", new { id = genre.GenreId }, genre);
@@ -90,6 +93,8 @@ namespace films.Controllers
         public async Task<ActionResult<Genre>> DeleteGenre(int id)
         {
             var genre = await _context.Genre.FindAsync(id);
+            var filmGenre = _context.FilmGenre.Where(fg => fg.GenreId == genre.GenreId).Include(fg => fg.Film).ToList();
+            _context.FilmGenre.RemoveRange(filmGenre);
             if (genre == null)
             {
                 return NotFound();

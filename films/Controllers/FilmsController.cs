@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using films.Models;
 
-namespace films.Controllers
+namespace films .Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -51,7 +51,8 @@ namespace films.Controllers
             {
                 return BadRequest();
             }
-
+            FilmValid c = new FilmValid(_context, film);
+            if (!c.Valid()) return BadRequest("Фільм з такими даними вже існує");
             _context.Entry(film).State = EntityState.Modified;
 
             try
@@ -80,6 +81,8 @@ namespace films.Controllers
         public async Task<ActionResult<Film>> PostFilm(Film film)
         {
             _context.Film.Add(film);
+            FilmValid c = new FilmValid(_context, film);
+            if (!c.Valid()) return BadRequest("Фільм з такими даними вже існує");
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetFilm", new { id = film.FilmId }, film);
@@ -90,6 +93,8 @@ namespace films.Controllers
         public async Task<ActionResult<Film>> DeleteFilm(int id)
         {
             var film = await _context.Film.FindAsync(id);
+            var filmGenre = _context.FilmGenre.Where(fg => fg.FilmId == film.FilmId).Include(fg => fg.Genre).ToList();
+            _context.FilmGenre.RemoveRange(filmGenre);
             if (film == null)
             {
                 return NotFound();

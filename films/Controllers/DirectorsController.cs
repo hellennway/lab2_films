@@ -51,7 +51,8 @@ namespace films.Controllers
             {
                 return BadRequest();
             }
-
+            DirectorValid c = new DirectorValid(_context, director);
+            if (!c.Valid()) return BadRequest("Режисер з такими даними вже існує");
             _context.Entry(director).State = EntityState.Modified;
 
             try
@@ -80,6 +81,8 @@ namespace films.Controllers
         public async Task<ActionResult<Director>> PostDirector(Director director)
         {
             _context.Director.Add(director);
+            DirectorValid c = new DirectorValid(_context, director);
+            if (!c.Valid()) return BadRequest("Режисер з такими даними вже існує");
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetDirector", new { id = director.DirectorId }, director);
@@ -90,6 +93,13 @@ namespace films.Controllers
         public async Task<ActionResult<Director>> DeleteDirector(int id)
         {
             var director = await _context.Director.FindAsync(id);
+            var film = _context.Film.Where(f => f.DirectorId == director.DirectorId).Include(f => f.Director).ToList();
+            foreach (var f in film)
+            {
+                var filmGenre = _context.FilmGenre.Where(fg => fg.FilmId == f.FilmId).Include(fg => fg.Genre).ToList();
+                _context.FilmGenre.RemoveRange(filmGenre);
+            }
+            _context.Film.RemoveRange(film);
             if (director == null)
             {
                 return NotFound();
